@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.dao.PackageDao">
+    <insert id="add" parameterType="Package">
+        <selectKey order="AFTER" keyProperty="id" resultType="int">
+            select last_insert_id()
+        </selectKey>
+        insert into t_package
+        (name,code,helpCode,sex,age,price,remark,attention,img)
+        values
+        (#{name},#{code},#{helpCode},#{sex},#{age},#{price},#{remark},#{attention},#{img})
+    </insert>
+    <insert id="addPackageAndCheckGroup" parameterType="int">
+        insert into t_package_checkgroup values (#{pkgId},#{checkgroupId})
+    </insert>
+    <select id="getPackage" resultType="Package">
+        select * from t_package
+    </select>
+    <resultMap id="packageDetailResultMap" type="Package">
+        <id property="id" column="id"/>
+        <result column="name" property="name"/>
+        <result column="remark" property="remark"/>
+        <result column="sex" property="sex"/>
+        <result column="age" property="age"/>
+        <result column="img" property="img"/>
+        <collection property="checkGroups" ofType="CheckGroup" column="checkgroup_id">
+            <id property="id" column="checkgroup_id"/>
+            <result property="name" column="checkgroup_name"/>
+            <result property="remark" column="checkgroup_remark"/>
+            <collection property="checkItems" ofType="CheckItem" column="checkitem_id">
+                <id property="id" column="checkitem_id"/>
+                <result property="name" column="checkitem_name"/>
+            </collection>
+        </collection>
+    </resultMap>
+    <select id="getPackageDetail" parameterType="int" resultMap="packageDetailResultMap">
+        SELECT p.*,g.`id` AS checkgroup_id,g.`name`
+        AS checkgroup_name,g.`remark` AS checkgroup_remark,
+        i.`id` AS checkitem_id,i.`name` AS checkitem_name
+        FROM t_package p,t_package_checkgroup pg,t_checkgroup g,
+        t_checkgroup_checkitem gi,t_checkitem i
+        WHERE  p.`id`=pg.`package_id` AND pg.`checkgroup_id`=g.`id`
+        AND g.`id`=gi.`checkgroup_id` AND gi.`checkitem_id`=i.`id`
+        AND p.`id`=#{id}
+    </select>
+    <select id="findById" parameterType="int" resultType="Package">
+        select * from t_package where id=#{id}
+    </select>
+
+    <select id="getPackageReport" resultType="Map">
+        SELECT p.name ,t.cnt value FROM
+        (SELECT package_id,COUNT(1) AS cnt FROM t_order GROUP BY package_id) t,
+        t_package p WHERE t.package_id=p.id
+    </select>
+
+    <select id="findHotPackage" resultType="Map">
+        SELECT p.name,t.cnt AS count,t.cnt/g.total AS proportion, p.remark
+        FROM (
+            SELECT package_id,COUNT(1) AS cnt FROM t_order GROUP BY package_id
+        ) t, t_package p, (
+            SELECT COUNT(1) total FROM t_order
+        ) g
+        WHERE t.package_id=p.id ORDER BY count DESC LIMIT 0,4
+        /*select p.name,t.cnt as count,t.cnt/g.total as proportion, p.remark
+        from (
+            select package_id,count(1) as cnt from t_order group by package_id order by cnt desc
+        ) t, t_package p, (
+            select count(1) total from t_order
+        ) g
+        where t.package_id=p.id limit 0,4*/
+    </select>
+</mapper>

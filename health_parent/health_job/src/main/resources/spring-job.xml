@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="com.itheima.job"/>
+    <context:annotation-config></context:annotation-config>
+    <!--任务策略-->
+    <bean id="jobDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!--调用的是哪个任务类-->
+        <property name="targetObject" ref="cleanImgJob"></property>
+        <!--调用的方法-->
+        <property name="targetMethod" value="doJob"></property>
+        <!--是否使用多线程来跑-->
+        <property name="concurrent" value="false"></property>
+    </bean>
+    <!--触发器-->
+    <bean id="trigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <!--触发的时机-->
+        <property name="cronExpression" value="0/30 * * * * ? *"></property>
+        <!--触发是遇到的任务策略-->
+        <property name="jobDetail" ref="jobDetail"></property>
+    </bean>
+    <!--任务调试器-->
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="trigger"></ref>
+            </list>
+        </property>
+    </bean>
+    <import resource="classpath:spring-redis.xml"/>
+</beans>

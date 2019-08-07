@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/security
+       http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!--1.配置匿名访问资源-->
+    <!--重要重要重要：所有的路径必须以/打头-->
+    <!--静态资源过滤, 不需要登陆就可以访问-->
+    <!--pattern 匹配的规则 security=none 无须认证-->
+    <security:http pattern="/css/**" security="none"/>
+    <security:http pattern="/js/**" security="none"/>
+    <security:http pattern="/img/**" security="none"/>
+    <security:http pattern="/plugins/**" security="none"/>
+    <security:http pattern="/login.html" security="none"/>
+    <!--2.配置认证后访问资源-->
+    <security:http auto-config="true" use-expressions="true">
+        <!--设置pages目录下,登录后可以访问-->
+        <security:intercept-url pattern="/pages/**" access="isAuthenticated()"/>
+        <security:headers>
+            <!--允许iframe的同域名的访问-->
+            <security:frame-options policy="SAMEORIGIN"/>
+        </security:headers>
+        <!--设置登录页面-->
+        <security:form-login
+                login-page="/login.html"
+                login-processing-url="/login.do"
+                username-parameter="username"
+                password-parameter="password"
+                default-target-url="/pages/main.html"
+                always-use-default-target="false"
+        />
+        <!--禁止跨域访问的限制-->
+        <security:csrf disabled="true"/>
+
+        <!--logout-url 处理退出登陆的请求，
+            logout-success-url: 退出成功后跳转的页面
+            invalidate-session: session失效
+        -->
+        <security:logout logout-url="/logout.do" logout-success-url="/login.html" invalidate-session="true"/>
+        <security:access-denied-handler error-page="/403.html"/>
+    </security:http>
+    <!--3.配置认证管理器-->
+    <security:authentication-manager>
+        <!--认证信息提供，提供认证用户信息，执行登陆认证
+        user-service-ref: 用户信息可以由这个来提供，引用了容器的bean对象来提供, securityUserService
+        securityUserService必须实现一个接口UserDetailService
+        -->
+        <security:authentication-provider user-service-ref="securityUserService">
+            <!--使用密码加密器-->
+            <security:password-encoder ref="encoder"/>
+            <!--由用户业务来提供
+            <security:user-service>
+                <
+                    写死用户名与密码及所拥有的 角色
+                    {noop} 不操作，不加密，明文
+                    authorities: 这个用户所拥有的角色,些时的角色必须与intercept-url中的access一样
+
+                <security:user name="admin" password="{noop}admin" authorities="ROLE_ADMIN"/>
+            </security:user-service>
+             -->
+        </security:authentication-provider>
+    </security:authentication-manager>
+    <!--4.开启注解方式权限控制-->
+    <security:global-method-security pre-post-annotations="enabled"/>
+
+    <bean id="encoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+</beans>
